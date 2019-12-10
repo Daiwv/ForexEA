@@ -109,19 +109,19 @@ void CalculateSignalLine()
       if(tmpHigh > highest)
       {
          highest =tmpHigh;
-         Alert("higer:"+i," ",highest);
+         //Alert("higer:"+i," ",highest);
       }
       if(tmpLow < lowest)
       {
          lowest = tmpLow;
-         Alert("lower:"+i," ",lowest);
+         //Alert("lower:"+i," ",lowest);
       }
       
    }
    average = (highest + lowest) / 2 ;
    averageHigh = average + (offSetAmount*Point());
    averageLow = average - (offSetAmount*Point());
-   Alert(average," ",averageHigh," ",averageLow," ",highest," ",lowest);
+   //DisplayText(average," ",averageHigh," ",averageLow," ",highest," ",lowest);
 }
 
 int CaclulateDaysDistance()
@@ -141,26 +141,26 @@ void DisplaySinalLine()
          // is displayed delete it
          CalculateSignalLine();
          if(!ObjectCreate(HighestLineName, OBJ_HLINE, 0, Time[0], highest, 0, 0))
-            Alert("Create highest error: ",GetLastError());
+            DisplayText("Create highest error: "+GetLastError());
          if(!ObjectCreate(LowestLineName, OBJ_HLINE, 0, Time[0], lowest, 0, 0))
-            Alert("Create highest error: ",GetLastError());
+            DisplayText("Create lowest error: "+GetLastError());
          if(!ObjectCreate(AverageLineName, OBJ_HLINE, 0, Time[0], average, 0, 0))
-            Alert("Create highest error: ",GetLastError());
+            DisplayText("Create average error: "+GetLastError());
          if(!ObjectCreate(AverageHighLineName, OBJ_HLINE, 0, Time[0], averageHigh, 0, 0))
-            Alert("Create highest error: ",GetLastError());
+            DisplayText("Create averageHigh error: "+GetLastError());
          if(!ObjectCreate(AverageLowLineName, OBJ_HLINE, 0, Time[0], averageLow, 0, 0))          
-            Alert("Create highest error: ",GetLastError());
+            DisplayText("Create averageLow error: "+GetLastError());
          if(!ObjectSet(AverageHighLineName,OBJPROP_COLOR,Yellow))
-            Alert("Create highest error: ",GetLastError());
+            DisplayText("Set averageHigh color error: "+GetLastError());
          if(!ObjectSet(AverageLowLineName,OBJPROP_COLOR,Yellow))          
-            Alert("Create highest error: ",GetLastError());
+            DisplayText("Set averagelow color error: "+GetLastError());
             
          isInited = true;
       }
       else
       {
          // is not displayed show it
-         if(!ObjectDelete(0,HighestLineName) || !ObjectDelete(0,HighestLineName) || ! ObjectDelete(0,AverageLineName) || !ObjectDelete(0,AverageHighLineName) || !ObjectDelete(0,AverageLowLineName))
+         if(!ObjectDelete(0,HighestLineName) || !ObjectDelete(0,LowestLineName) || ! ObjectDelete(0,AverageLineName) || !ObjectDelete(0,AverageHighLineName) || !ObjectDelete(0,AverageLowLineName))
          {
             DisplayText("Delete Horizontal line error: "+GetLastError());
          }
@@ -246,10 +246,10 @@ void DebugSignal(bool isBuy)
 {
 
       if(!ObjectCreate(TimeCurrent(), OBJ_ARROW_DOWN, 0, Time[0], averageLow, 0, 0))
-         Alert("Create highest error: ",GetLastError());
+         DisplayText("Create lowest error: "+GetLastError());
   
        if(!ObjectCreate(TimeCurrent(), OBJ_ARROW_UP, 0, Time[0], averageHigh  , 0, 0))
-         Alert("Create highest error: ",GetLastError());
+         DisplayText("Create highest error: "+GetLastError());
 
 }
 
