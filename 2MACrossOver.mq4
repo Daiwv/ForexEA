@@ -12,24 +12,44 @@
 //Input Properties
 //---------------------------------------------------------
 extern int MagicNumber = 2060;
-extern int TakeProfit = 40;
-extern int StopLoss = 40;  
-extern bool IsUseTP;
-extern bool IsUseFilter;
 
-extern int BBPeriod;
-extern double BBDevision;
+extern static string IndicatorProperties0 = "---Main Signal---";
+extern ENUM_MA_METHOD MA_Method = MODE_EMA;
+extern int MA_Short=160;
+extern int MA_Long=10;
 
-extern ENUM_TIMEFRAMES filterTimeFrame;
+extern bool isUseMoneyManagement;
+extern bool isUseFilter;
+
+extern static string IndicatorProperties1 = "---Money Management---";
+extern double MinLot =0.02;
 extern double AdditionalLot=0.01;
 extern double AdditionalDistance;
 extern int AdditionalMaxLot=3;
+
+extern static string IndicatorProperties2 = "---Take profit and Stop Loss---";
+extern bool isUseTakeprofit;
+extern int TakeProfitPoint = 40;
+extern bool isUseStoploss;
+extern int StopLossPoint = 40; 
+
+extern static string IndicatorProperties4 = "---Filter---";
+extern bool isUseTimeFilter;
+extern bool isUseBBFilter;
+
+extern static string IndicatorProperties5 = "---Time---";
 extern int TimeFilterBegin=8;
 extern int TimeFilterEnd=10;
-extern int MA_Long=10;
-extern int MA_Short=160;
-extern ENUM_MA_METHOD MA_Method = MODE_EMA;
-extern double MinLot =0.02;
+
+extern static string IndicatorProperties6 = "---Boliger band---";
+extern int BBPeriod;
+extern double BBDevision;
+
+
+
+
+
+
 
 int lastOrderTime;
 int backupTime;
@@ -77,7 +97,7 @@ void OnTick()
       //
       if(IsOrderExist())
       {
-         if(!IsUseTP)
+         if(!isUseTakeprofit || !isUseStoploss)
          {
             CheckForClose();
          }
@@ -123,13 +143,19 @@ void CheckForOpen()
       
       double maShort = iMA(NULL,0,MA_Short,0,MA_Method,PRICE_CLOSE,0);
       double maLong = iMA(NULL,0,MA_Long,0,MA_Method,PRICE_CLOSE,0);
+      float takeProfit= 0;
+      float stopLoss = 0;
+      if(isUseTakeprofit)
+         takeProfit = Ask+ TakeProfitPoint * Point();
+      if(isUseStoploss)
+         stopLoss = Bid - StopLossPoint * Point();
       
       if((Open[1] < maShort && Close[1] > maShort && Close[1] > maLong && maShort > maLong && DoFilter(true)))
       {
          
          if(IsUseTP)
          {
-            if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3,0,Ask + TakeProfit*Point(),"",MagicNumber,0,clrBlue) < 0)
+            if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3,stoploss,takeprofit,"",MagicNumber,0,clrBlue) < 0)
             {
                DisplayText("Open buy order fail:"+GetLastError());
             }
@@ -207,9 +233,11 @@ void CheckForClose()
       if(OrderMagicNumber() != MagicNumber)
          continue;
        
+      //DebugSignal(maLong,maShort,Open[1],Close[1]);
       if(OrderType() == OP_BUY)
       {
-         if(Open[1] > maShort && Close[1] < maShort && maShort < maLong)
+         
+         if((Open[1] > maShort && Close[1] < maShort && maShort < maLong) || Close[1] < maShort)
          {
             if(!OrderClose(OrderTicket(),OrderLots(), Bid, 3,clrWhite))
             {
@@ -227,7 +255,8 @@ void CheckForClose()
       
       if(OrderType() == OP_SELL)
       {
-         if(Open[1] < maShort && Close[1] > maShort && maShort > maLong)
+         
+         if((Open[1] < maShort && Close[1] > maShort && maShort > maLong) || Close[1]> maShort)
          {
             if(!OrderClose(OrderTicket(),OrderLots(), Ask, 3,clrWhite))
             {
@@ -242,6 +271,28 @@ void CheckForClose()
       }
       
      }
+}
+
+void DebugSignal(float pointA, float pointB, float pointC,float pointD)
+{
+   DisplayText(ObjectsTotal());
+   for(int i=0;i<ObjectsTotal();i++)
+     {
+         if(!ObjectDelete(0, ObjectName(i)))
+         {
+            DisplayText("Delete error:"+GetLastError());
+         }
+     }
+
+    
+    if(!ObjectCreate(TimeCurrent()+"0", OBJ_ARROW_DOWN, 0, Time[0], pointA, 0, 0))
+         Alert("Create pointA error: ",GetLastError());
+    if(!ObjectCreate(TimeCurrent()+"1", OBJ_ARROW_DOWN, 0, Time[0], pointB  , 0, 0))
+         Alert("Create pointB error: ",GetLastError());
+    if(!ObjectCreate(TimeCurrent()+"2", OBJ_ARROW_UP, 0, Time[0], pointC  , 0, 0))
+         Alert("Create pointC error: ",GetLastError());
+    if(!ObjectCreate(TimeCurrent()+"3", OBJ_ARROW_UP, 0, Time[0], pointD  , 0, 0))
+         Alert("Create pointD error: ",GetLastError());
 }
 
 void CheckForLossCut()
@@ -336,10 +387,10 @@ void CheckForAddOrder()
 bool DoFilter(bool CheckForBuy)
 {
    
-   if(!IsUseFilter)
+   if(isUseTimeFilter)
    {
-      DisplayText("no fileterss");
-      return true;
+      if(TimeHour(TimeCurrent()) <= TimeFilterBegin && TimeHour(TimeCurrent()) >= TimeFilterEnd)
+         return false;
    }
    
    
@@ -415,7 +466,7 @@ void DisplayText(string msg)
 {
    index +=1;
    string name = "label_object:"+ index; 
-   int pos = 50 + ((index % 3 ) *100);
+   int pos = 50 + ((index % 300 ) *100);
    ObjectCreate(name, OBJ_TEXT, 0, Time[0], Close[0]+pos*Point); //draw an up arrow
    ObjectSet(name, OBJPROP_XDISTANCE, 200);
    ObjectSet(name, OBJPROP_YDISTANCE, 3000);

@@ -44,7 +44,7 @@ int OnInit()
    isDisplayed = false;
    //DisplayText(CaclulateDaysDistance());
    DisplaySinalLine();
-   //AddButton();
+   AddButton();
    isInited = false;
    CurrentChoise = 0;
    DisplayText(CurrentChoise);
