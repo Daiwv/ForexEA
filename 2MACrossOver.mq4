@@ -22,6 +22,7 @@ extern bool isUseMoneyManagement;
 extern bool isUseFilter;
 
 extern static string IndicatorProperties1 = "---Money Management---";
+extern double StandardLot = 0.01;
 extern double MinLot =0.02;
 extern double AdditionalLot=0.01;
 extern double AdditionalDistance;
@@ -145,69 +146,51 @@ void CheckForOpen()
       double maLong = iMA(NULL,0,MA_Long,0,MA_Method,PRICE_CLOSE,0);
       float takeProfit= 0;
       float stopLoss = 0;
-      if(isUseTakeprofit)
-         takeProfit = Ask+ TakeProfitPoint * Point();
-      if(isUseStoploss)
-         stopLoss = Bid - StopLossPoint * Point();
+      
       
       if((Open[1] < maShort && Close[1] > maShort && Close[1] > maLong && maShort > maLong && DoFilter(true)))
       {
          
-         if(IsUseTP)
+         if(isUseTakeprofit)
          {
-            if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3,stoploss,takeprofit,"",MagicNumber,0,clrBlue) < 0)
-            {
-               DisplayText("Open buy order fail:"+GetLastError());
-            }
-            else
-            {
-               CurrentLot +=1;
-               state = 0;
-            }
+            if(isUseTakeprofit)
+               takeProfit = Ask+ TakeProfitPoint * Point();
+            if(isUseStoploss)
+               stopLoss = Bid - StopLossPoint * Point();
+         }
+         
+         
+         if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3,stopLoss,takeProfit,"",MagicNumber,0,clrBlue) < 0)
+         {
+            DisplayText("Open buy order fail:"+GetLastError());
          }
          else
          {
-         
-            if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3,0,0,"",MagicNumber,0,clrBlue) < 0)
-            {
-               DisplayText("Open buy order fail:"+GetLastError());
-            }
-            else
-            {
-               CurrentLot +=1;
-               state = 0;
-            }
+            CurrentLot +=1;
+            state = 0;
          }
       }
       
       if((Open[1] > maShort && Close[1] < maShort && Close[1] < maLong && maShort < maLong && DoFilter(false)))
       {
         
-         if(IsUseTP)
+         if(isUseTakeprofit)
          {
-            if(OrderSend(Symbol(),OP_SELL, GetLot(), Bid,3,0,Bid - TakeProfit*Point(),"",MagicNumber,0,clrRed)<0)
-            {
-               DisplayText("Open buy order fail:"+GetLastError());
-            }
-            else
-            {
-               CurrentLot +=1;
-               state = 0;
-            }
+            if(isUseTakeprofit)
+               takeProfit = Bid - TakeProfitPoint * Point();
+            if(isUseStoploss)
+               stopLoss = Ask + StopLossPoint * Point();
+         
+         }
+         if(OrderSend(Symbol(),OP_SELL, GetLot(), Bid,3,stopLoss,takeProfit,"",MagicNumber,0,clrRed)<0)
+         {
+            DisplayText("Open buy order fail:"+GetLastError());
          }
          else
          {
-            if(OrderSend(Symbol(),OP_SELL, GetLot(), Bid,3,0,0,"",MagicNumber,0,clrRed)<0)
-            {
-               DisplayText("Open buy order fail:"+GetLastError());
-            }
-            else
-            {
-               CurrentLot +=1;
-               state = 0;
-            }
+            CurrentLot +=1;
+            state = 0;
          }
-         
       }
       
    }
@@ -516,28 +499,34 @@ void OnChartEvent(const int id,
 float GetLot()
 {
   // return (AccountBalance()*Risk)/StopLoss * (Point *10);
-  
-  for(int i=OrdersHistoryTotal()-1;i>=0;i--)
-    {
-     if(OrderSelect(i,SELECT_BY_POS,MODE_HISTORY)==false)
-      continue;
-     if(OrderSymbol() != Symbol())
-      continue;
-     if(OrderMagicNumber() != MagicNumber)
-      continue;
-     if(OrderProfit()<0)
-     {
+  if(isUseMoneyManagement)
+  {
+   for(int i=OrdersHistoryTotal()-1;i>=0;i--)
+   {
+      if(OrderSelect(i,SELECT_BY_POS,MODE_HISTORY)==false)
+         continue;
+      if(OrderSymbol() != Symbol())
+         continue;
+      if(OrderMagicNumber() != MagicNumber)
+         continue;
+      if(OrderProfit()<0)
+      {
          //DisplayText("lenh lo");
          return MinLot;
-     }
-     else
-     {
+      }
+      else
+      {
          //DisplayText("lenh loi");
-         return MinLot +AdditionalLot;
-     }
-      
-     
-    }
-    DisplayText("");
-    return MinLot;
+        // return MinLot +AdditionalLot;
+        return StandardLot;
+      }
+   }
+   DisplayText("");
+   return MinLot;
+  }
+   else
+   {
+      return StandardLot;
+   }
+    
 }
