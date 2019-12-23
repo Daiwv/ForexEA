@@ -68,6 +68,9 @@ string sellBtnName = "Sell";
 string lotInputFieldName = "LotInput";
 string slPipInputFieldName = "StopLossPip";
 string tpPipInputFieldName = "TakeProfitLossPip";
+string lotLabelName = "LotLabel";
+string StoplossLabelName = "StoplossLabel";
+string TakeprofitLabelName = "TakeprofitLabel";
 
 int state;
 //+------------------------------------------------------------------+
@@ -98,9 +101,9 @@ void SetupUI()
    InputFiled(0, slPipInputFieldName, "0.1", 190 ,140,0,60,50);
    InputFiled(0, tpPipInputFieldName, "0.1", 350 ,140,0,60,50);
        
-   Label(0, "LotLabel", "Lot: ", 110 ,95,0);
-   Label(0, "StoplossLabel", "StopLoss: ", 110 ,155,0);
-   Label(0, "TakeprofitLabel", "Take profit: ", 260 ,155,0);
+   Label(0, lotLabelName, "Lot: ", 110 ,95,0);
+   Label(0, StoplossLabelName, "StopLoss: ", 110 ,155,0);
+   Label(0, TakeprofitLabelName, "Take profit: ", 260 ,155,0);
 }
 
 void SetUIElementsPosition(const long ID=0, const string name="", const int x = 100, const int y = 10, const int sizeX = 100, const int sizeY = 50)
@@ -220,12 +223,59 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
             
          DisplayText(ObjectGetString(0,"abc",OBJPROP_TEXT));
          DisplayText("is Can trade " + isCanTrade); 
-        }
+       }
+       
+       if(sparam == buyBtnName)
+       {
+         //DisplayText("Lot: " + ObjectGetString(0,lotInputFieldName,OBJPROP_TEXT));
+         //DisplayText("Take profit: " + ObjectGetString(0,tpPipInputFieldName,OBJPROP_TEXT));
+         //DisplayText("Stop loss: " + ObjectGetString(0,slPipInputFieldName,OBJPROP_TEXT));
+         double lot = StrToDouble(ObjectGetString(0,lotInputFieldName,OBJPROP_TEXT));
+         double stopLossPip = StrToDouble(ObjectGetString(0,slPipInputFieldName,OBJPROP_TEXT)) * Point;
+         double takeprofitPip = StrToDouble(ObjectGetString(0,tpPipInputFieldName,OBJPROP_TEXT)) * Point;
+         OpenOrder(true,lot,stopLossPip,takeprofitPip);
+       }
+       if(sparam == sellBtnName)
+       {
+         //DisplayText("Lot: " + ObjectGetString(0,lotInputFieldName,OBJPROP_TEXT));
+         //DisplayText("Take profit: " + ObjectGetString(0,tpPipInputFieldName,OBJPROP_TEXT));
+         //DisplayText("Stop loss: " + ObjectGetString(0,slPipInputFieldName,OBJPROP_TEXT));
+         double lot = StrToDouble(ObjectGetString(0,lotInputFieldName,OBJPROP_TEXT));
+         double stopLossPip = StrToDouble(ObjectGetString(0,slPipInputFieldName,OBJPROP_TEXT)) * Point;
+         double takeprofitPip = StrToDouble(ObjectGetString(0,tpPipInputFieldName,OBJPROP_TEXT)) * Point;
+         OpenOrder(false,lot,stopLossPip,takeprofitPip);
+       }
      
   }
 }
 
-
+void OpenOrder(bool isBuy, float lot, float stoplossPip, float takeprofitPip)
+{
+   if (isBuy)
+   {
+      if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3,Bid - stoplossPip,Ask + takeprofitPip,"",MagicNumber,0,clrBlue) < 0)
+      {
+         DisplayText("Open buy order fail:"+GetLastError());
+      }
+      else
+      {
+         CurrentLot +=1;
+         state = 0;
+      }
+   }
+   else
+   {
+      if(OrderSend(Symbol(),OP_SELL, GetLot(), Bid,3,Ask + stoplossPip,Bid - takeprofitPip,"",MagicNumber,0,clrBlue) < 0)
+      {
+         DisplayText("Open buy order fail:"+GetLastError());
+      }
+      else
+      {
+         CurrentLot +=1;
+         state = 0;
+      }
+   }
+}
   
 //+------------------------------------------------------------------+
 //| Expert deinitialization function                                 |
