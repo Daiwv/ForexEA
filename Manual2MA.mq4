@@ -15,8 +15,8 @@ extern int MagicNumber = 2060;
 
 extern static string IndicatorProperties0 = "---Main Signal---";
 extern ENUM_MA_METHOD MA_Method = MODE_EMA;
-extern int MA_Short=160;
-extern int MA_Long=10;
+extern int MA_Short=10;
+extern int MA_Long=160;
 
 extern bool isUseMoneyManagement;
 extern bool isUseFilter;
@@ -50,7 +50,7 @@ extern bool isCanTrade;
 
 
 
-
+int previousStatus;//0 haven't init, 1 sell,2 buy
 
 int lastOrderTime;
 int backupTime;
@@ -84,7 +84,9 @@ int OnInit()
     maxFloating = 0;
     CurrentLot = 0;
     state = -1;
-    DisplayText("a");
+    previousStatus = 0;
+    
+   
     SetupUI();
    // AddButton();
 //---
@@ -193,7 +195,7 @@ bool Button(const long   ID=0,               // chart's ID
    
    
    
-   DisplayText("is can trade "+isCanTrade);
+   
    ObjectSetInteger(ID,name,OBJPROP_BORDER_COLOR,clrWhiteSmoke); 
  
    //ObjectSetInteger(ID,name,OBJPROP_BACK,true); 
@@ -221,8 +223,7 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
          else
             ObjectSetInteger(0,tradeOnOffBtnName,OBJPROP_BGCOLOR,clrRed); 
             
-         DisplayText(ObjectGetString(0,"abc",OBJPROP_TEXT));
-         DisplayText("is Can trade " + isCanTrade); 
+        
        }
        
        if(sparam == buyBtnName)
@@ -260,7 +261,7 @@ void OpenOrder(bool isBuy, float lot, float stoplossPip, float takeprofitPip)
       else
       {
          CurrentLot +=1;
-         state = 0;
+         state = 0;  
       }
    }
    else
@@ -403,10 +404,29 @@ void CheckForClose()
    double maShort = iMA(NULL,0,MA_Short,0,MA_Method,PRICE_CLOSE,0);
    double maLong = iMA(NULL, 0,MA_Long,0,MA_Method,PRICE_CLOSE,0);
    
+   // da thap hon close order mua
+   int orderTypeToClose = OP_BUY;
+   double priceToClose = Bid;
+   
+   //dong lenh buy
+   if((Open[1] > maShort && Close[1] < maShort && maShort < maLong) || (Close[1] < maShort && maShort < maLong))
+   {
+      orderTypeToClose  = OP_BUY;
+      priceToClose = Bid;
+   }
+   else if((Open[1] < maShort && Close[1] > maShort && maShort > maLong) || (Close[1]> maShort && maShort > maLong)) //dong lenh sell
+   {
+      orderTypeToClose  = OP_SELL;
+      priceToClose = Ask;
+   }
+   else
+   {
+      return;// khong co truong hop nao dung
+   }
    
    
    for(int i=0;i<OrdersTotal();i++)
-     {
+   {
       if(OrderSelect(i, SELECT_BY_POS, MODE_TRADES)== false)
          continue;
        
@@ -417,43 +437,20 @@ void CheckForClose()
          continue;
        
       //DebugSignal(maLong,maShort,Open[1],Close[1]);
-      if(OrderType() == OP_BUY)
+      if(OrderType() == orderTypeToClose)
       {
-         
-         if((Open[1] > maShort && Close[1] < maShort && maShort < maLong) || Close[1] < maShort)
+         if(!OrderClose(OrderTicket(),OrderLots(), priceToClose, 3,clrWhite))
          {
-            if(!OrderClose(OrderTicket(),OrderLots(), Bid, 3,clrWhite))
-            {
-               DisplayText("Closing order error:"+GetLastError());
-            }
-            else
-            {
-               DisplayText("Total order: "+OrdersTotal());
-               CurrentLot -= 1;
-               state = 1;
-            }
+            DisplayText("Closing order error:"+GetLastError());
+         }
+         else
+         {
             
+            CurrentLot -= 1;
+            state = 1;
          }
       }
-      
-      if(OrderType() == OP_SELL)
-      {
-         
-         if((Open[1] < maShort && Close[1] > maShort && maShort > maLong) || Close[1]> maShort)
-         {
-            if(!OrderClose(OrderTicket(),OrderLots(), Ask, 3,clrWhite))
-            {
-               DisplayText("Closing order error:"+GetLastError());
-            }else
-            {
-               DisplayText("Total order: "+OrdersTotal());
-               CurrentLot -= 1;
-               state = 1;
-            }
-         }
-      }
-      
-     }
+   }
 }
 
 void DebugSignal(float pointA, float pointB, float pointC,float pointD)
@@ -664,6 +661,7 @@ float GetLot()
   // return (AccountBalance()*Risk)/StopLoss * (Point *10);
   if(isUseMoneyManagement)
   {
+   DisplayText("get lot");
    for(int i=OrdersHistoryTotal()-1;i>=0;i--)
    {
       if(OrderSelect(i,SELECT_BY_POS,MODE_HISTORY)==false)
@@ -674,17 +672,17 @@ float GetLot()
          continue;
       if(OrderProfit()<0)
       {
-         //DisplayText("lenh lo");
+         DisplayText("lenh lo: "+OrderProfit());
          return MinLot;
       }
       else
       {
-         //DisplayText("lenh loi");
+         DisplayText("lenh loi:"+OrderProfit());
         // return MinLot +AdditionalLot;
         return StandardLot;
       }
    }
-   DisplayText("");
+   
    return MinLot;
   }
    else
