@@ -60,6 +60,8 @@ bool sellSignal;
 
 int CurrentLot;
 
+int today;
+
 double maxFloating;
 // ui elements
 string tradeOnOffBtnName = "TradeOnOff";
@@ -79,13 +81,13 @@ int state;
 int OnInit()
   {
 //---
-   isCanTrade = true;
+   isCanTrade = false;
    //init param
     maxFloating = 0;
     CurrentLot = 0;
     state = -1;
     previousStatus = 0;
-    
+    today = TimeDay(TimeCurrent());
    
     SetupUI();
    // AddButton();
@@ -100,8 +102,8 @@ void SetupUI()
    Button(0,sellBtnName, "Sell",0,140);
     
    InputFiled(0, lotInputFieldName, "0.1", 190 ,80,0,60,50);
-   InputFiled(0, slPipInputFieldName, "0.1", 190 ,140,0,60,50);
-   InputFiled(0, tpPipInputFieldName, "0.1", 350 ,140,0,60,50);
+   InputFiled(0, slPipInputFieldName, "0", 190 ,140,0,60,50);
+   InputFiled(0, tpPipInputFieldName, "0", 350 ,140,0,60,50);
        
    Label(0, lotLabelName, "Lot: ", 110 ,95,0);
    Label(0, StoplossLabelName, "StopLoss: ", 110 ,155,0);
@@ -179,6 +181,7 @@ bool Button(const long   ID=0,               // chart's ID
       else
       {
          ObjectSetInteger(ID,name, OBJPROP_BGCOLOR,clrRed);
+         DisplayText("can not trade");
       }
       
       
@@ -252,9 +255,31 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
 
 void OpenOrder(bool isBuy, float lot, float stoplossPip, float takeprofitPip)
 {
+    float stoploss;
+    float takeProfit;
    if (isBuy)
    {
-      if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3,Bid - stoplossPip,Ask + takeprofitPip,"",MagicNumber,0,clrBlue) < 0)
+      if(stoplossPip <= 0)
+      {
+         stoploss = 0;
+      }
+      else
+      {
+         stoploss = Bid - stoplossPip;
+      }
+      
+      
+      if(takeprofitPip <= 0)
+      {
+         takeProfit = 0;
+      }
+      else
+      {
+         takeProfit = Ask + takeprofitPip;
+      }
+      
+       
+      if(OrderSend(Symbol(),OP_BUY, GetLot(), Ask,3, stoploss, takeProfit,"",MagicNumber,0,clrBlue) < 0)
       {
          DisplayText("Open buy order fail:"+GetLastError());
       }
@@ -266,7 +291,26 @@ void OpenOrder(bool isBuy, float lot, float stoplossPip, float takeprofitPip)
    }
    else
    {
-      if(OrderSend(Symbol(),OP_SELL, GetLot(), Bid,3,Ask + stoplossPip,Bid - takeprofitPip,"",MagicNumber,0,clrBlue) < 0)
+      if(stoplossPip <= 0)
+      {
+         stoploss = 0;
+      }
+      else
+      {
+         stoploss = Ask + stoplossPip;
+      }
+      
+      
+      if(takeprofitPip <= 0)
+      {
+         takeProfit = 0;
+      }
+      else
+      {
+         takeProfit = Bid - takeprofitPip;
+      }
+   
+      if(OrderSend(Symbol(),OP_SELL, GetLot(), Bid,3,stoploss, takeProfit,"",MagicNumber,0,clrBlue) < 0)
       {
          DisplayText("Open buy order fail:"+GetLastError());
       }
@@ -312,6 +356,14 @@ void OnTick()
       { 
         maxFloating = AccountEquity()-AccountBalance();
         
+      }
+      
+      int tmpToday = TimeDay(TimeCurrent());
+      if(tmpToday != today)
+      {
+         today = tmpToday;
+         isCanTrade = false;
+         Button(0,tradeOnOffBtnName, "On/Off",0,20);
       }
   }
 //+------------------------------------------------------------------+
